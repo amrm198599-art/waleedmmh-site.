@@ -1,0 +1,35 @@
+{
+  "brand": "WALEEDMMH",
+  "center": "WALEEDMMH App Center",
+  "tagline": "تطبيقات أندرويد من تطوير WALEEDMMH، مع صفحة واضحة وسياسة خصوصية مستقلة لكل تطبيق.",
+  "email": "waleedmmh789@gmail.com",
+  "url": null,
+  "official_url": "https://sites.google.com/view/waleedmmh789/الصفحة-الرئيسية",
+  "default_lang": "ar",
+  "languages": [
+    {
+      "code": "ar",
+      "name": "العربية",
+      "dir": "rtl"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "dir": "ltr"
+    }
+  ],
+  "i18n": {
+    "en": {
+      "center": "WALEEDMMH App Center",
+      "tagline": "Android apps by WALEEDMMH, each with a clear page and its own privacy policy."
+    }
+  },
+  "social": {
+    "youtube": "https://youtube.com/@waleedmmh789",
+    "facebook": "https://www.facebook.com/share/19SS6zpphi/"
+  },
+  "policy": {
+    "approved": false,
+    "updated": null
+  }
+}

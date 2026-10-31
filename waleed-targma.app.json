@@ -1,0 +1,105 @@
+{
+  "id": "waleed-targma",
+  "name": "وليد ترجمة",
+  "order": 2,
+  "status": "coming",
+  "category": "أدوات الفيديو",
+  "short": "يترجم كلام الفيديو ويحرق الترجمة داخله على هاتفك.",
+  "description": "يستخرج التطبيق الصوت من الفيديو الذي تختاره على هاتفك، ثم يحوّل الكلام إلى نص ويترجمه، ويحرق الترجمة داخل الفيديو على هاتفك ويحفظه في المعرض.\n\nيدعم الترجمة على الجهاز أو عبر خادم الترجمة، ووضع «فيديو القرآن» الذي يطابق التلاوة بنص المصحف ويعرض ترجمة محفوظة معتمدة بدل الترجمة الآلية.",
+  "features": [
+    "واجهة عربية وإنجليزية",
+    "استخراج الصوت وحرق الترجمة داخل الفيديو على هاتفك، والفيديو الأصلي لا يُرفع ولا يُعدَّل",
+    "ترجمة على الجهاز أو عبر الخادم أو تلقائي",
+    "وضع فيديو القرآن بترجمات محفوظة مع رقم السورة والآية",
+    "إعدادات حجم الخط وموضع الترجمة وشفافيتها",
+    "بلا إعلانات ولا حسابات مستخدمين"
+  ],
+  "version": null,
+  "updated": null,
+  "size": null,
+  "min_android": "Android 10 فأحدث",
+  "icon": null,
+  "screenshots": [],
+  "play_url": null,
+  "apk": null,
+  "releases": [],
+  "privacy": {
+    "approved": false,
+    "updated": "2026-10-25",
+    "data_collected": [
+      "الفيديو الذي تختاره أنت فقط عبر منتقي الملفات الرسمي في Android، ولا يُرفع الفيديو نفسه.",
+      "الصوت المستخرج من الفيديو يُرسل عبر HTTPS إلى خادم الترجمة المحدد في الإعدادات بعد موافقتك، ويعيد الخادم النص المترجم مع التوقيت.",
+      "قد يسجّل الخادم والوسيط الذي أمامه عنوان IP ووقت الطلب وحجمه لأغراض الأمان ومنع الإساءة.",
+      "لا يجمع التطبيق اسمك أو بريدك أو موقعك، ولا توجد حسابات مستخدمين."
+    ],
+    "permissions": [
+      { "name": "الإنترنت (INTERNET)", "purpose": "إرسال الصوت المستخرج إلى خادم الترجمة، وتنزيل نموذج اللغة مرة واحدة عند استخدام الترجمة على الجهاز" },
+      "لا يطلب التطبيق إذن الوصول إلى مكتبة الوسائط؛ يعتمد على منتقي الملفات الرسمي."
+    ],
+    "third_party": [
+      "لا توجد إعلانات ولا أدوات تحليلات.",
+      "الخادم الافتراضي يديره صاحب التطبيق ويستخدم نماذج مفتوحة المصدر (Whisper للتعرف على الكلام وNLLB للترجمة) تعمل على الخادم نفسه، ولا يُرسل الصوت أو النص إلى خدمات ذكاء اصطناعي تابعة لأطراف أخرى. الخادم مستضاف لدى مزود سحابي وتمر البيانات عبر بنيته التحتية.",
+      "الترجمة على الجهاز تستخدم Google ML Kit، ويُنزَّل نموذج اللغة مرة واحدة من Google.",
+      "إذا غيّرت عنوان الخادم في الإعدادات فمشغّل ذلك الخادم هو من يستقبل الصوت وتسري عليه سياسته.",
+      "لا تُستخدم فيديوهاتك أو تسجيلاتك أو نصوصها لتدريب نماذج الذكاء الاصطناعي."
+    ],
+    "retention": [
+      "على الخادم: يُحذف الصوت فور انتهاء المعالجة (نجحت أو فشلت أو أُلغيت) وعند إعادة تشغيل الخادم. يُحتفظ بنص الترجمة الناتج لساعة كحد أقصى ثم يُحذف، ويُحذف فور انتهاء التطبيق من جلبه.",
+      "على هاتفك: الملفات المؤقتة (الصوت المستخرج والنسخة قبل الحفظ) تُحذف عند اختيار فيديو آخر أو إغلاق التطبيق. الفيديو الذي تحفظه في المعرض يبقى حتى تحذفه أنت."
+    ],
+    "children": "التطبيق غير موجّه للأطفال دون 13 عامًا.",
+    "deletion": [
+      "يمكنك إلغاء العملية في أي وقت، فتتوقف المعالجة ويُحذف ما رُفع.",
+      "يمكنك حذف الفيديو المحفوظ من المعرض، أو مسح بيانات التطبيق من إعدادات Android.",
+      "يمكنك طلب حذف أي بيانات تقنية تخصك (مثل سجلات IP إن وُجدت) بالتواصل معنا عبر صفحة الدعم."
+    ]
+  },
+  "i18n": {
+    "en": {
+      "name": "Waleed Targma",
+      "category": "Video tools",
+      "short": "Translates video speech and burns the subtitles into the video on your phone.",
+      "description": "The app extracts the audio from the video you choose on your phone, converts the speech to text and translates it, then burns the translation into the video on your phone and saves it to your gallery.\n\nIt supports on-device translation or a translation server, and a “Quran video” mode that matches the recitation against the Quran text and shows an approved saved translation instead of machine translation.",
+      "features": [
+        "Arabic and English interface",
+        "Audio extraction and subtitle burning happen on your phone; the original video is never uploaded or modified",
+        "On-device, server, or automatic translation",
+        "Quran video mode with saved translations and surah:ayah references",
+        "Font size, subtitle position and opacity settings",
+        "No ads and no user accounts"
+      ],
+      "min_android": "Android 10 or later",
+      "privacy": {
+        "approved": false,
+        "updated": "2026-10-25",
+        "data_collected": [
+          "Only the video you pick through Android's official file picker; the video itself is not uploaded.",
+          "The extracted audio is sent over HTTPS to the translation server set in Settings, after your consent; the server returns the translated text with timings.",
+          "The server and the proxy in front of it may log your IP address, request time and size for security and abuse prevention.",
+          "The app does not collect your name, email or location, and there are no user accounts."
+        ],
+        "permissions": [
+          { "name": "Internet (INTERNET)", "purpose": "send the extracted audio to the translation server, and download the language model once when on-device translation is used" },
+          "The app does not request media-library permission; it relies on the official file picker."
+        ],
+        "third_party": [
+          "There are no ads and no analytics tools.",
+          "The default server is run by the app owner and uses open-source models (Whisper for speech recognition and NLLB for translation) running on the same server. Audio and text are not sent to third-party AI services. The server is hosted with a cloud provider and data passes through its infrastructure.",
+          "On-device translation uses Google ML Kit; the language model is downloaded once from Google.",
+          "If you change the server address in Settings, the operator of that server receives your audio and its own policy applies.",
+          "Your videos, recordings and their text are not used to train AI models."
+        ],
+        "retention": [
+          "On the server: audio is deleted as soon as processing ends (success, failure or cancellation) and when the server restarts. The resulting translated text is kept for at most one hour, and is deleted as soon as the app has fetched it.",
+          "On your phone: temporary files (extracted audio and the pre-save video) are removed when you pick another video or close the app. A video you save to the gallery stays until you delete it."
+        ],
+        "children": "The app is not directed at children under 13.",
+        "deletion": [
+          "You can cancel at any time; processing stops and uploaded data is deleted.",
+          "You can delete the saved video from your gallery or clear the app's data in Android settings.",
+          "You may ask us to delete any technical data about you (such as IP logs, if any) by contacting us through the support page."
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "waleedmmh-site",
+  "private": true,
+  "scripts": {
+    "build": "node verify-apk.js && node build.js",
+    "test": "node --test test.js",
+    "check": "node check.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
