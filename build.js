@@ -59,7 +59,7 @@ ${BASE && !noindex ? `<link rel="canonical" href="${BASE + pre(c) + '/' + lp}"><
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/style.css">
 <script src="/assets/theme.js"></script>${lp === '' && !noindex ? org : ''}</head>
 <body><header class="top"><a class="brand" href="${U('')}">${LOGO}<span>${esc(sv.brand)}</span></a>
-<nav><a href="${U('apps/')}">${t('nav_apps')}</a><a href="${U('privacy/')}">${t('nav_privacy')}</a><a href="${U('support/')}">${t('nav_support')}</a>${sw}</nav>
+<nav><a href="${U('apps/')}">${t('nav_apps')}</a><a href="${U('youtuber/')}">${t('nav_yt')}</a><a href="${U('privacy/')}">${t('nav_privacy')}</a><a href="${U('support/')}">${t('nav_support')}</a>${sw}</nav>
 <button id="th" class="ic" type="button" aria-label="${esc(t('theme'))}">◐</button></header>
 <main>${b}</main>
 <footer><p>© ${new Date().getFullYear()} ${esc(sv.brand)} — ${esc(sv.center)}</p><p><a href="${U('apps/')}">${t('footer_apps')}</a><a href="${U('privacy/')}">${t('footer_privacy')}</a><a href="${U('privacy/site/')}">${t('footer_site_privacy')}</a><a href="${U('support/')}">${t('footer_support')}</a></p>${soc ? `<p>${soc}</p>` : ''}<p>${t('footer_note')}</p></footer>
@@ -155,6 +155,47 @@ ${t('sp').map(s => `<h2>${s.h}</h2>${s.p.map(x => `<p>${x.split('{contact}').joi
 <h2>${t('faq_h')}</h2>
 ${[1, 2, 3].map(i => `<details><summary>${t('faq' + i + '_q')}</summary><p>${t('faq' + i + '_a')}</p></details>`).join('\n')}` });
   page('support/thanks/', { title: t('th_title'), noindex: true, b: `<h1>${t('th_h')}</h1><p>${t('th_p')}</p><p><a class="btn" href="${U('')}">${t('th_back')}</a></p>` });
+
+  // ----- قسم «يوتيوبر» -----
+  const yi = JSON.stringify(Object.fromEntries(Object.keys(strs[DEF]).filter(k => k.startsWith('yt_m_') || k === 'yt_copied' || k === 'yt_chars' || k === 'yt_best' || k === 'yt_file_none' || k === 'yt_title_f' || k === 'yt_desc_f' || k === 'yt_tags_f' || k === 'yt_hash_f').map(k => [k, t(k)]))).replace(/</g, '\\u003c');
+  const ytc = (id, label, extra = '') => `<label for="${id}">${t(label)}</label><input id="${id}" ${extra}>`;
+  page('youtuber/', { title: t('yt_title'), d: t('yt_desc'), b: `
+<h1>${t('yt_h')}</h1><p>${t('yt_intro')}</p><p class="note">${t('yt_privacy_note')}</p>
+<div id="yt-root">
+<section class="card"><h2 style="margin-top:0">${t('yt_s1')}</h2>
+<p class="row"><button id="yt-upload" class="btn" type="button">${t('yt_upload')}</button><input id="yt-file" type="file" accept="video/*" hidden><span id="yt-file-name" class="note">${t('yt_file_none')}</span></p>
+<p>${t('yt_or')}</p>
+<label for="yt-url">${t('yt_url_label')}</label><div class="row"><input id="yt-url" type="url" inputmode="url" dir="ltr" placeholder="youtube.com/watch?v=..." style="flex:1;min-width:200px" maxlength="300"><button id="yt-fetch" class="btn g" type="button">${t('yt_fetch')}</button></div>
+<label for="yt-note">${t('yt_note_label')}</label><textarea id="yt-note" rows="3" maxlength="1500" placeholder="${esc(t('yt_note_ph'))}"></textarea>
+<label for="yt-sub">${t('yt_sub_label')}</label><textarea id="yt-sub" rows="3" maxlength="6000" placeholder="${esc(t('yt_sub_ph'))}"></textarea>
+<label for="yt-lang">${t('yt_lang_label')}</label><select id="yt-lang">${LANGS.map(l => `<option value="${l.code}"${l.code === c ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
+<p><button id="yt-analyze" class="btn" type="button">${t('yt_analyze')}</button></p><p id="yt-status" role="status" aria-live="polite"></p></section>
+<section id="yt-results" class="card" hidden><h2 style="margin-top:0">${t('yt_s2')}</h2>
+<label for="yt-title">${t('yt_title_f')} <small id="yt-title-n"></small></label><input id="yt-title" maxlength="100"><p><button class="btn g" type="button" data-copy="yt-title">${t('yt_copy')}</button></p>
+<p class="note" style="margin:0 0 6px">${t('yt_alt_titles')}</p><div id="yt-alts" class="chips"></div>
+<label for="yt-desc">${t('yt_desc_f')} <small id="yt-desc-n"></small></label><textarea id="yt-desc" rows="10" maxlength="5000"></textarea><p><button class="btn g" type="button" data-copy="yt-desc">${t('yt_copy')}</button></p>
+<label for="yt-tags">${t('yt_tags_f')} <small id="yt-tags-n"></small></label><textarea id="yt-tags" rows="3" maxlength="500"></textarea><p><button class="btn g" type="button" data-copy="yt-tags">${t('yt_copy')}</button></p>
+<label for="yt-hash">${t('yt_hash_f')}</label><input id="yt-hash" maxlength="400"><p><button class="btn g" type="button" data-copy="yt-hash">${t('yt_copy')}</button></p>
+<p class="row"><button id="yt-copyall" class="btn" type="button">${t('yt_copy_all')}</button><button id="yt-txt" class="btn g" type="button">${t('yt_dl_txt')}</button></p>
+<p class="note">${t('yt_disclaimer')}</p></section>
+<section id="yt-editor" class="card" hidden><h2 style="margin-top:0">${t('yt_s3')}</h2>
+<p class="note" style="margin:0 0 6px">${t('yt_frames_h')}</p><div id="yt-frames" class="ytfr"></div><p id="yt-reason" class="note" style="margin-top:8px"></p>
+<canvas id="yt-canvas" width="1280" height="720" class="ytcv"></canvas>
+<p class="note" style="margin:8px 0 6px">${t('yt_text_opts')}</p><div id="yt-textopts" class="chips"></div>
+<div class="ytg"><div>${ytc('yt-text', 'yt_text_f', 'maxlength="60"')}</div><div><label for="yt-pos">${t('yt_pos')}</label><select id="yt-pos"><option value="top">${t('yt_pos_top')}</option><option value="center">${t('yt_pos_center')}</option><option value="bottom" selected>${t('yt_pos_bottom')}</option></select></div>
+<div>${ytc('yt-size', 'yt_size', 'type="range" min="40" max="180" value="100"')}</div><div>${ytc('yt-color', 'yt_color', 'type="color" value="#ffffff"')}</div>
+<div class="yt-flt">${ytc('yt-b', 'yt_bright', 'type="range" min="60" max="150" value="100"')}</div><div class="yt-flt">${ytc('yt-c', 'yt_contrast', 'type="range" min="60" max="160" value="100"')}</div><div class="yt-flt">${ytc('yt-s', 'yt_sat', 'type="range" min="0" max="200" value="100"')}</div>
+<div><label for="yt-shade" style="display:flex;gap:8px;align-items:center"><input id="yt-shade" type="checkbox" checked style="width:auto">${t('yt_shade')}</label></div></div>
+<p><button id="yt-dl" class="btn" type="button">${t('yt_dl_img')}</button></p>
+<h3>${t('yt_prev_h')}</h3><div class="ytg"><div><p class="note" style="margin:0 0 4px">${t('yt_prev_mobile')}</p><div class="ytp"><div class="ytpi"><canvas id="yt-pm"></canvas><span>12:34</span></div><b class="yt-ptitle"></b><small>${t('yt_prev_channel')} · ${t('yt_prev_views')}</small></div></div>
+<div><p class="note" style="margin:0 0 4px">${t('yt_prev_desktop')}</p><div class="ytp d"><div class="ytpi"><canvas id="yt-pd"></canvas><span>12:34</span></div><b class="yt-ptitle"></b><small>${t('yt_prev_channel')} · ${t('yt_prev_views')}</small></div></div></div></section>
+<section class="card"><h2 style="margin-top:0">${t('yt_s4')}</h2>
+<label for="yt-topic">${t('yt_topic_label')}</label><textarea id="yt-topic" rows="2" maxlength="800"></textarea>
+${ytc('yt-min', 'yt_minutes', 'type="number" min="1" max="20" value="5" inputmode="numeric"')}
+<p class="row"><button id="yt-ideas" class="btn g" type="button">${t('yt_ideas')}</button><button id="yt-script" class="btn" type="button">${t('yt_script')}</button></p>
+<div id="yt-out-box" hidden><label for="yt-out">${t('yt_out')}</label><textarea id="yt-out" rows="14"></textarea><p class="row"><button class="btn g" type="button" data-copy="yt-out">${t('yt_copy')}</button><button id="yt-out-dl" class="btn g" type="button">${t('yt_dl_txt')}</button></p></div></section>
+</div>
+<script type="application/json" id="yt-i18n">${yi}</script><script src="/assets/youtuber.js" defer></script>` });
   if (c === DEF) page('404', { title: t('nf_title'), noindex: true, raw404: true, b: `<h1>${t('nf_title')}</h1><p>${t('nf_p', { home: U(''), store: U('apps/') })}</p>` });
 }
 codes.forEach(render);
@@ -164,7 +205,7 @@ if (BASE) write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset 
 else console.warn('تنبيه: رابط الموقع غير محدد (site.json ← url)، لن يُنشأ sitemap.xml ولا روابط canonical/hreflang.');
 if (BASE) console.log('رابط الموقع: ' + BASE + ' (المصدر: ' + SU.source + ')');
 const cp = (from, to) => { fs.mkdirSync(p.dirname(p.join(D, to)), { recursive: true }); fs.copyFileSync(p.join(R, from), p.join(D, to)); };
-['style.css', 'site.js', 'theme.js', 'favicon.svg'].forEach(f => cp(f, 'assets/' + f));
+['style.css', 'site.js', 'theme.js', 'favicon.svg', 'youtuber.js'].forEach(f => cp(f, 'assets/' + f));
 cp('admin.html', 'admin/index.html'); cp('admin.js', 'admin/admin.js'); cp('apk-reader.js', 'admin/apk-reader.js');
 // الصور: من جذر المجلد ومن media/ (الرفع من لوحة التحكم يضعها في media/)
 const imgs = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => /\.(png|jpe?g|webp)$/i.test(f)).map(f => p.join(d, f)) : [];
