@@ -379,3 +379,16 @@ test('رفع APK: القارئ يُنسخ مع لوحة التحكم ويُحم�
   for (const f of ['admin.js', 'apk-reader.js']) execFileSync('node', ['--check', p.join(R, f)]);
   assert.ok(!/localStorage|XMLHttpRequest|fetch\(/.test(fs.readFileSync(p.join(R, 'apk-reader.js'), 'utf8')), 'القارئ لا يتصل بأي شبكة');
 });
+
+test('فحص جاهزية Google Play: يرصد الموانع ولا يعد بالقبول', () => {
+  const R = require('./apk-reader.js');
+  const base = { package: 'com.waleedmmh.app', versionCode: 3, targetSdk: 36, debuggable: false, signed: true, abis: [], permissions: [], hints: [], cleartext: false };
+  const good = R.checkPlay(base);
+  assert.equal(good.blockers.length, 0);
+  assert.ok(good.warnings.some(w => w.includes('AAB')));
+  const bad = R.checkPlay({ ...base, package: 'com.example.app', targetSdk: 33, debuggable: true, signed: false, abis: ['armeabi-v7a'], versionCode: null,
+    permissions: [{ short: 'READ_SMS', full: 'android.permission.READ_SMS' }] });
+  assert.equal(bad.blockers.length, 6);
+  assert.ok(bad.warnings.some(w => w.includes('READ_SMS')));
+  assert.ok(!/مقبول|مضمون/.test(bad.verdict));
+});

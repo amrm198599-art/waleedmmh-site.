@@ -12,7 +12,7 @@
     let e = -1;
     for (let i = dv.byteLength - 22; i >= Math.max(0, dv.byteLength - 22 - 65535); i--) if (u32(dv, i) === 0x06054b50) { e = i; break; }
     if (e < 0) throw new Error('الملف ليس APK صالحاً (لم يُعثر على فهرس ZIP).');
-    const n = u16(dv, e + 10); let p = u32(dv, e + 16); const map = Object.create(null);
+    const n = u16(dv, e + 10); let p = u32(dv, e + 16); const cd = p, map = Object.create(null); Object.defineProperty(map, '__cd', { value: cd });
     for (let i = 0; i < n; i++) {
       if (p + 46 > dv.byteLength || u32(dv, p) !== 0x02014b50) throw new Error('فهرس ZIP تالف.');
       const nl = u16(dv, p + 28), el = u16(dv, p + 30), cl = u16(dv, p + 32);
@@ -174,6 +174,41 @@
     return (/^[\x20-\x7e]+$/.test(label || '') && ok(label)) || ok(pkg) || '';
   }
 
+  // ───────── فحص جاهزية Google Play (من بيانات الملف فقط) ─────────
+  const MIN_TARGET = 36; // Google Play: التطبيقات الجديدة والتحديثات تستهدف Android 16 فأحدث منذ 2026-08-31
+  function isSigned(dv, ents) {
+    if (Object.keys(ents).some(n => /^META-INF\/[^/]+\.(RSA|DSA|EC)$/i.test(n))) return true;
+    const cd = ents.__cd, magic = 'APK Sig Block 42';
+    if (cd >= 16 && cd <= dv.byteLength) { let t = ''; for (let i = cd - 16; i < cd; i++) t += String.fromCharCode(dv.getUint8(i)); return t === magic; }
+    return false;
+  }
+  const SENSITIVE = { READ_SMS: 'SMS', SEND_SMS: 'SMS', RECEIVE_SMS: 'SMS', RECEIVE_MMS: 'SMS', READ_CALL_LOG: 'سجل المكالمات', WRITE_CALL_LOG: 'سجل المكالمات', PROCESS_OUTGOING_CALLS: 'سجل المكالمات',
+    MANAGE_EXTERNAL_STORAGE: 'الوصول الواسع للملفات', QUERY_ALL_PACKAGES: 'قائمة كل التطبيقات', REQUEST_INSTALL_PACKAGES: 'تثبيت الحزم', ACCESS_BACKGROUND_LOCATION: 'الموقع في الخلفية',
+    USE_FULL_SCREEN_INTENT: 'الإشعار بملء الشاشة', USE_EXACT_ALARM: 'المنبّهات الدقيقة', SCHEDULE_EXACT_ALARM: 'المنبّهات الدقيقة', READ_MEDIA_IMAGES: 'الصور والفيديو', READ_MEDIA_VIDEO: 'الصور والفيديو', SYSTEM_ALERT_WINDOW: 'العرض فوق التطبيقات' };
+  function checkPlay(info) {
+    const bl = [], wr = [], ok = [];
+    if (info.targetSdk == null) wr.push('لم يُعثر على targetSdkVersion في الملف؛ حدّده صراحةً في Gradle.');
+    else if (info.targetSdk < MIN_TARGET) bl.push('مستوى الاستهداف ' + info.targetSdk + ' أقل من المطلوب: تشترط Google Play منذ 31 أغسطس 2026 أن يستهدف أي تطبيق جديد أو تحديث Android 16 (API 36) فأحدث. ارفع targetSdk وcompileSdk إلى 36 واختبر التطبيق على Android 16.');
+    else ok.push('مستوى الاستهداف ' + info.targetSdk + ' مقبول.');
+    if (info.debuggable) bl.push('الملف مبني بوضع debuggable، وترفضه Google Play. ابنِ نسخة release موقّعة.');
+    if (!info.package) bl.push('لم يُعثر على اسم الحزمة (package).');
+    else if (/^com\.(example|android)(\.|$)/.test(info.package)) bl.push('اسم الحزمة ' + info.package + ' محجوز أو تجريبي ولا تقبله Google Play. اختر معرّفاً خاصاً بك (مثل com.waleedmmh.appname). تنبيه: تغييره بعد النشر مستحيل.');
+    if (info.versionCode == null || info.versionCode < 1) bl.push('versionCode غير موجود أو أقل من 1.');
+    if (info.signed === false) bl.push('لم يُعثر على توقيع في الملف. ارفع نسخة موقّعة بمفتاح الإصدار (release keystore).');
+    const a = info.abis || [];
+    if (a.some(x => /^(armeabi|armeabi-v7a|x86)$/.test(x)) && !a.includes('arm64-v8a')) bl.push('الملف يحوي مكتبات native 32-بت فقط (' + a.join('، ') + ') بلا arm64-v8a. تشترط Google Play وجود نسخة 64-بت.');
+    if (a.length) wr.push('الملف يحوي مكتبات native (' + a.join('، ') + '). إن استهدفت Android 15 فأحدث فتأكد أنها تدعم صفحات الذاكرة 16KB، وإلا ترفضها Google Play أو تتعطل على أجهزة حديثة.');
+    const sens = {}; info.permissions.forEach(p => { if (SENSITIVE[p.short]) (sens[SENSITIVE[p.short]] = sens[SENSITIVE[p.short]] || []).push(p.short); });
+    Object.entries(sens).forEach(([k, v]) => wr.push('أذونات حساسة (' + v.join('، ') + '): تتطلب غالباً نموذج تصريح أو تبريراً في Play Console، وقد يُرفض التطبيق إن لم يكن الاستخدام جوهرياً في وظيفته. إن لم تحتجها فاحذفها (' + k + ').'));
+    if (info.cleartext) wr.push('usesCleartextTraffic=true يسمح باتصال http غير مشفّر؛ استبدله بـ https إن أمكن.');
+    if (info.hints && info.hints.some(h => ['vpn', 'accessibility', 'device_admin', 'notif_listener'].includes(h))) wr.push('الملف يعلن خدمة حساسة (VPN أو وصول أو إدارة جهاز أو قراءة إشعارات): تتطلب نموذج تصريح خاص وشرحاً صريحاً داخل التطبيق قبل الموافقة.');
+    if (info.hints && info.hints.some(h => ['adnet', 'analytics3p', 'facebook', 'admob', 'firebase'].includes(h))) wr.push('الملف يضم مكتبات إعلانات أو تحليلات: صرّح بها في نموذج «سلامة البيانات» وفي سياسة الخصوصية.');
+    wr.push('Google Play تطلب للتطبيقات الجديدة ملف AAB لا APK. هذا الفحص يخص ملف APK فقط، فابنِ حزمة AAB (Build ← Generate Signed Bundle) بالإعدادات نفسها قبل الرفع.');
+    const verdict = bl.length ? 'غير جاهز للرفع: ' + bl.length + ' مانع تقني' : 'لا موانع تقنية ظاهرة في هذا الملف (مع ' + wr.length + ' ملاحظات للمراجعة)';
+    const note = 'الفحص يعتمد على الـ manifest وهيكل الملف فقط، ولا يقرأ الشيفرة. مراجعة جوجل تشمل أيضاً: سياسة الخصوصية (رابط يعمل)، نموذج سلامة البيانات، تصنيف المحتوى، بيانات صفحة المتجر، ومطابقة سلوك التطبيق لما صرّحت به. لذلك لا يضمن أي فحص القبول.';
+    return { verdict, blockers: bl, warnings: wr, passed: ok, note };
+  }
+
   // ───────── القراءة الرئيسية ─────────
   async function readApk(input) {
     const buf = input instanceof ArrayBuffer ? input : await input.arrayBuffer(), dv = new DataView(buf);
@@ -192,6 +227,8 @@
     return {
       package: typeof m.attrs.package === 'string' ? m.attrs.package : null, label: typeof label === 'string' && label.trim() ? label.trim() : null,
       versionName: vn != null && vn !== '' ? String(vn) : null, versionCode: num(m.attrs.versionCode), minSdk: num(sdk.attrs.minSdkVersion), targetSdk: num(sdk.attrs.targetSdkVersion),
+      debuggable: val(ap.attrs.debuggable) === true, cleartext: val(ap.attrs.usesCleartextTraffic) === true,
+      abis: [...new Set(Object.keys(ents).map(n => (n.match(/^lib\/([^/]+)\/.+\.so$/) || [])[1]).filter(Boolean))], signed: isSigned(dv, ents),
       permissions, hints: hintIds(els), size: buf.byteLength, sha256: [...new Uint8Array(digest)].map(x => x.toString(16).padStart(2, '0')).join('')
     };
   }
@@ -225,6 +262,6 @@
     return { set, tr, perms, notes, hints: info.hints.map(h => HINTS[h][0]), hintsEn: info.hints.map(h => HINTS[h][1]) };
   }
 
-  const api = { readApk, plan, suggestId, fmtSize, androidName, permInfo, HINTS, _parse: { zipEntries, parseManifest, makeResolver, pool } };
+  const api = { readApk, plan, checkPlay, suggestId, fmtSize, androidName, permInfo, HINTS, _parse: { zipEntries, parseManifest, makeResolver, pool } };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ApkReader = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

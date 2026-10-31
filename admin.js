@@ -98,6 +98,25 @@ async function viewApps(box){
     apps.length?h('div',{class:'grid'},apps.sort((a,b)=>(a.data.order||99)-(b.data.order||99)).map(a=>h('div',{class:'card'},h('h3',{},a.data.name||a.data.id),h('p',{class:'note'},'الحالة: '+({coming:'قيد التجهيز',testing:'قيد الاختبار',published:'منشور',paused:'متوقف'}[a.data.status]||a.data.status)+' · السياسة: '+((a.data.privacy||{}).approved?'معتمدة':'مسودة')),
       h('button',{class:'sm',type:'button',onclick:()=>edit(box,a.data,a.sha,apps)},'تعديل')))):h('p',{class:'note'},'لا توجد تطبيقات.'));
 }
+// ---------- روابط جاهزة للنسخ (سياسة الخصوصية / صفحة التطبيق / تنزيل APK) ----------
+function linksPanel(main){
+  const val=k=>{const f=main.fs.find(x=>x.k===k),i=f&&f.el.querySelector('input,textarea');return i?i.value.trim():''};
+  const box=h('div'),cp=async(t,b)=>{try{await navigator.clipboard.writeText(t);b.textContent='تم النسخ ✔'}catch(e){b.textContent='انسخ يدوياً';}setTimeout(()=>b.textContent='نسخ',1800)};
+  const row=(label,url,note)=>{const b=h('button',{type:'button',class:'btn g'},'نسخ');b.onclick=()=>cp(url,b);return h('div',{class:'card'},h('b',{},label),h('p',{},h('code',{dir:'ltr'},url)),note?h('p',{class:'note'},note):'',b)};
+  const draw=()=>{const id=val('id'),o=(typeof location!=='undefined'&&location.origin)||'',r=[];
+    if(!id){rc(box,h('p',{class:'note'},'اكتب معرّف التطبيق (id) أو اقرأ ملف APK لتظهر الروابط هنا.'));return}
+    r.push(row('رابط سياسة الخصوصية (للصقه في Google Play Console)',o+'/privacy/'+id+'/','يعمل بعد حفظ التطبيق وانتهاء النشر (نحو دقيقة). ما دامت السياسة مسودة تظهر عليها علامة «مسودة»، فاعتمدها بعد المراجعة قبل تقديمها لجوجل.'));
+    r.push(row('صفحة التطبيق',o+'/apps/'+id+'/'));
+    const u=val('apk.url');
+    r.push(u?row('رابط تنزيل APK المباشر',u,'هو الرابط الذي كتبته في الحقل، وتتحقق عملية البناء من أن بصمة ملفه تطابق SHA-256.'):h('p',{class:'warn'},'لا يوجد رابط APK بعد: ارفع الملف نفسه إلى GitHub Releases وضع رابطه في «رابط تنزيل APK».'));
+    rc(box,r)};
+  const bt=h('button',{type:'button',class:'btn'},'تحديث الروابط');bt.onclick=draw;draw();
+  return h('details',{open:true},h('summary',{},'روابط جاهزة للنسخ'),bt,box);
+}
+const playCard=pc=>h('div',{class:'card'},h('b',{},'فحص جاهزية Google Play: '+pc.verdict),
+  pc.blockers.length?[h('p',{class:'warn'},'موانع يجب إصلاحها:'),h('ul',{},pc.blockers.map(x=>h('li',{},x)))]:'',
+  pc.warnings.length?[h('b',{},'ملاحظات للمراجعة:'),h('ul',{},pc.warnings.map(x=>h('li',{},x)))]:'',
+  pc.passed.length?h('p',{class:'note'},'✔ '+pc.passed.join(' ✔ ')):'',h('p',{class:'note'},pc.note));
 // ---------- رفع APK لتعبئة الحقول (يُقرأ على جهازك ولا يُرفع) ----------
 function apkPanel(isNew,main,priv,trs){
   const fi=h('input',{type:'file',accept:'.apk,application/vnd.android.package-archive'}),out=h('div');
@@ -124,6 +143,7 @@ function apkPanel(isNew,main,priv,trs){
         pl.notes.length?h('ul',{},pl.notes.map(n=>h('li',{},n))):'',
         pl.hints.length?[h('b',{},'تنبيهات من ملف manifest:'),h('ul',{},pl.hints.map(n=>h('li',{},n)))]:'',
         h('p',{class:'note'},'البصمة محسوبة من هذا الملف نفسه، فارفع للاستضافة الملف ذاته دون أي تعديل. الفحص يعتمد على AndroidManifest فقط، وغياب تنبيه لا يعني غياب مكتبة أو سلوك. الوصف والتصنيف وبقية بنود السياسة (البيانات والطرف الثالث والاحتفاظ والحذف) تكتبها أنت، وتبقى السياسة مسودة حتى تعتمدها.'),
+        window.ApkReader.checkPlay?playCard(window.ApkReader.checkPlay(info)):'',
         val(main.fs,'apk.url')?'':h('p',{class:'warn'},'ضع رابط تنزيل APK (https) بعد رفعه لاستضافة ثابتة مثل GitHub Releases ثم احفظ؛ الحفظ يرفض البصمة بلا رابط.')));
     }catch(e){rc(out,'');say(e instanceof RangeError?'الملف كبير على ذاكرة جهازك؛ جرّب من حاسوب.':(e.message||'تعذّرت قراءة الملف'),true)}
     fi.value='';
@@ -154,7 +174,7 @@ function edit(box,orig,sha,apps){
   };
   const del=!isNew&&h('button',{class:'sm dn',type:'button',onclick:async()=>{if(!confirm('حذف «'+o.name+'» نهائياً من الموقع؟'))return;try{await api('apps/'+o.id,{m:'DELETE'});say('تم الحذف.');show('apps')}catch(e){fail(e)}}},'حذف التطبيق');
   box.replaceChildren(h('p',{},h('button',{class:'sm',type:'button',onclick:()=>show('apps')},'← القائمة')),h('h2',{style:'margin-top:0'},isNew?'تطبيق جديد':o.name),
-    h('div',{class:'card'},apkp,main.el,priv.el,trs.flatMap(t=>[t.meta.el,t.pv.el])),
+    h('div',{class:'card'},apkp,linksPanel(main),main.el,priv.el,trs.flatMap(t=>[t.meta.el,t.pv.el])),
     h('p',{class:'row'},h('button',{class:'btn',type:'button',onclick:save},'حفظ'),del||''));
 }
 
