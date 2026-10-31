@@ -165,7 +165,7 @@ else console.warn('تنبيه: رابط الموقع غير محدد (site.json 
 if (BASE) console.log('رابط الموقع: ' + BASE + ' (المصدر: ' + SU.source + ')');
 const cp = (from, to) => { fs.mkdirSync(p.dirname(p.join(D, to)), { recursive: true }); fs.copyFileSync(p.join(R, from), p.join(D, to)); };
 ['style.css', 'site.js', 'theme.js', 'favicon.svg'].forEach(f => cp(f, 'assets/' + f));
-cp('admin.html', 'admin/index.html'); cp('admin.js', 'admin/admin.js');
+cp('admin.html', 'admin/index.html'); cp('admin.js', 'admin/admin.js'); cp('apk-reader.js', 'admin/apk-reader.js');
 // الصور: من جذر المجلد ومن media/ (الرفع من لوحة التحكم يضعها في media/)
 const imgs = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => /\.(png|jpe?g|webp)$/i.test(f)).map(f => p.join(d, f)) : [];
 [...imgs(R), ...imgs(p.join(R, 'media'))].forEach(f => cp(p.relative(R, f), 'media/' + p.basename(f)));

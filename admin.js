@@ -98,6 +98,39 @@ async function viewApps(box){
     apps.length?h('div',{class:'grid'},apps.sort((a,b)=>(a.data.order||99)-(b.data.order||99)).map(a=>h('div',{class:'card'},h('h3',{},a.data.name||a.data.id),h('p',{class:'note'},'الحالة: '+({coming:'قيد التجهيز',testing:'قيد الاختبار',published:'منشور',paused:'متوقف'}[a.data.status]||a.data.status)+' · السياسة: '+((a.data.privacy||{}).approved?'معتمدة':'مسودة')),
       h('button',{class:'sm',type:'button',onclick:()=>edit(box,a.data,a.sha,apps)},'تعديل')))):h('p',{class:'note'},'لا توجد تطبيقات.'));
 }
+// ---------- رفع APK لتعبئة الحقول (يُقرأ على جهازك ولا يُرفع) ----------
+function apkPanel(isNew,main,priv,trs){
+  const fi=h('input',{type:'file',accept:'.apk,application/vnd.android.package-archive'}),out=h('div');
+  const inp=(fs,k)=>{const f=fs.find(x=>x.k===k);return f&&f.el.querySelector('input,textarea')};
+  const val=(fs,k)=>(inp(fs,k)||{value:''}).value.trim();
+  const put=(fs,k,v,keep)=>{const i=inp(fs,k);if(!i||v==null||(keep&&i.value.trim()))return false;i.value=v;return true};
+  const NM={id:'المعرّف',name:'الاسم',version:'الإصدار',updated:'آخر تحديث',size:'الحجم',min_android:'أندرويد المطلوب','apk.size':'حجم APK','apk.sha256':'بصمة SHA-256'};
+  fi.onchange=async()=>{
+    const f=fi.files[0];if(!f)return;
+    if(!window.ApkReader){say('قارئ APK لم يُحمَّل؛ حدّث الصفحة وأعد المحاولة.',true);return}
+    rc(out,h('p',{class:'note'},'جارٍ قراءة الملف على جهازك (لا يُرفع إلى أي مكان)…'));
+    try{
+      const info=await window.ApkReader.readApk(f),d=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+      const pl=window.ApkReader.plan(info,{isNew,today:d,langs:trs.map(t=>t.code),current:{id:val(main.fs,'id'),name:val(main.fs,'name'),permissions:split(inp(priv.fs,'permissions').value)}});
+      const done=[];
+      Object.entries(pl.set).forEach(([k,x])=>{if(put(main.fs,k,x,k==='id'||k==='name'))done.push(NM[k]||k)});
+      const rel=inp(main.fs,'releases');
+      if(rel&&pl.set.version&&!split(rel.value).some(l=>l===pl.set.version||l.startsWith(pl.set.version+' |'))){rel.value=[pl.set.version+' | '+d+' | ',rel.value.trim()].filter(Boolean).join('\n');done.push('سجل الإصدارات')}
+      const pf=put(priv.fs,'permissions',pl.perms.ar.join('\n'),true);if(pf)done.push('الأذونات (العربية)');
+      trs.forEach(t=>{if(pl.tr[t.code]&&put(t.meta.fs,'min_android',pl.tr[t.code].min_android))done.push('أندرويد المطلوب ('+t.code+')');
+        if(pf&&t.code==='en'&&put(t.pv.fs,'permissions',pl.perms.en.join('\n'),true))done.push('الأذونات (en)')});
+      rc(out,h('div',{class:'card'},h('b',{},'تمت القراءة: '+(info.label||info.package||f.name)),h('p',{class:'note'},'الحزمة: '+(info.package||'—')+' · versionCode: '+(info.versionCode??'—')),
+        h('p',{},'عُبّئت الحقول: '+(done.join('، ')||'لا شيء')),
+        pl.notes.length?h('ul',{},pl.notes.map(n=>h('li',{},n))):'',
+        pl.hints.length?[h('b',{},'تنبيهات من ملف manifest:'),h('ul',{},pl.hints.map(n=>h('li',{},n)))]:'',
+        h('p',{class:'note'},'البصمة محسوبة من هذا الملف نفسه، فارفع للاستضافة الملف ذاته دون أي تعديل. الفحص يعتمد على AndroidManifest فقط، وغياب تنبيه لا يعني غياب مكتبة أو سلوك. الوصف والتصنيف وبقية بنود السياسة (البيانات والطرف الثالث والاحتفاظ والحذف) تكتبها أنت، وتبقى السياسة مسودة حتى تعتمدها.'),
+        val(main.fs,'apk.url')?'':h('p',{class:'warn'},'ضع رابط تنزيل APK (https) بعد رفعه لاستضافة ثابتة مثل GitHub Releases ثم احفظ؛ الحفظ يرفض البصمة بلا رابط.')));
+    }catch(e){rc(out,'');say(e instanceof RangeError?'الملف كبير على ذاكرة جهازك؛ جرّب من حاسوب.':(e.message||'تعذّرت قراءة الملف'),true)}
+    fi.value='';
+  };
+  return h('details',{open:true},h('summary',{},'رفع ملف APK لتعبئة الحقول تلقائياً'),h('p',{class:'note'},'اختر ملف APK فيُقرأ هنا على جهازك (لا يُرفع)، وتُعبّأ الحقول المستخرجة منه: الاسم والإصدار والحجم والبصمة وأقل أندرويد والأذونات.'),fi,out);
+}
+
 function edit(box,orig,sha,apps){
   const isNew=!orig,o=JSON.parse(JSON.stringify(orig||{status:'coming',features:[],screenshots:[],releases:[],privacy:{approved:false}}));
   const main=sect('البيانات الأساسية',F,o,true);
@@ -105,6 +138,7 @@ function edit(box,orig,sha,apps){
   const priv=sect('سياسة الخصوصية (العربية)',PF,o.privacy||{},false);
   const langs=(site.languages||[]).filter(l=>l.code!==site.default_lang);
   const trs=langs.map(l=>{o.i18n=o.i18n||{};const t=o.i18n[l.code]||{};return{code:l.code,meta:sect('ترجمة: '+l.name,TR,t,false),pv:sect('سياسة الخصوصية: '+l.name,PF,t.privacy||{},false)}});
+  const apkp=apkPanel(isNew,main,priv,trs);
   const save=async()=>{
     const a={...o};
     main.fs.forEach(f=>{const v=f.read();set(a,f.k,v)});
@@ -120,7 +154,7 @@ function edit(box,orig,sha,apps){
   };
   const del=!isNew&&h('button',{class:'sm dn',type:'button',onclick:async()=>{if(!confirm('حذف «'+o.name+'» نهائياً من الموقع؟'))return;try{await api('apps/'+o.id,{m:'DELETE'});say('تم الحذف.');show('apps')}catch(e){fail(e)}}},'حذف التطبيق');
   box.replaceChildren(h('p',{},h('button',{class:'sm',type:'button',onclick:()=>show('apps')},'← القائمة')),h('h2',{style:'margin-top:0'},isNew?'تطبيق جديد':o.name),
-    h('div',{class:'card'},main.el,priv.el,trs.flatMap(t=>[t.meta.el,t.pv.el])),
+    h('div',{class:'card'},apkp,main.el,priv.el,trs.flatMap(t=>[t.meta.el,t.pv.el])),
     h('p',{class:'row'},h('button',{class:'btn',type:'button',onclick:save},'حفظ'),del||''));
 }
 
