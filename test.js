@@ -423,6 +423,7 @@ test('يوتيوبر API: التحقق والحدود وتنقية المخرج�
   const jpg = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]).toString('base64');
   const real = globalThis.fetch;
   try {
+    const stt = await (await h(new Request('http://x/api/yt/status'))).json(); assert.deepEqual([stt.ok, stt.anthropicKey], [true, false]); // مسار فحص النشر لا يكشف المفاتيح
     assert.equal((await call('/api/yt/analyze', { frames: [] })).j.code, 'bad_input');
     assert.equal((await call('/api/yt/analyze', { frames: ['data:image/png;base64,AAAA'] })).s, 400);
     assert.equal((await call('/api/yt/analyze', { frames: [jpg, jpg, jpg, jpg, jpg, jpg] })).s, 400);

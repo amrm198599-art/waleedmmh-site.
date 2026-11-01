@@ -339,6 +339,7 @@ export default async req => {
   try {
     const u = new URL(req.url), r = u.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean).map(decodeURIComponent), m = req.method;
     if (r[0] === 'track' && m === 'POST') return await track(req);
+    if (r[0] === 'yt' && r[1] === 'status' && m === 'GET') return json({ ok: true, anthropicKey: !!env('ANTHROPIC_API_KEY'), youtubeKey: !!env('YOUTUBE_API_KEY'), model: env('YT_MODEL') || 'claude-haiku-5-5' });
     if (r[0] === 'yt' && m === 'POST') { if (r[1] === 'analyze') return await ytAnalyze(req); if (r[1] === 'write') return await ytWrite(req); if (r[1] === 'link') return await ytLink(req); }
     if (r[0] === 'reviews' && m === 'GET') return await getReviews(u);
     if (r[0] === 'reviews' && m === 'POST') return await postReview(req);
