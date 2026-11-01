@@ -233,7 +233,7 @@ async function health() {
 
 // ---------- يوتيوبر: تحليل لقطات وكتابة نصوص عبر Claude، وجلب بيانات رابط يوتيوب ----------
 // لا يُخزَّن أي محتوى: اللقطات والنصوص تمر إلى واجهة Anthropic وتعود، ولا يُحفظ إلا عدّاد يومي مجزّأ.
-const failc = (s, code) => { const e = new Error(code); e.status = s; e.code = code; throw e; };
+const failc = (s, code, detail) => { const e = new Error(code); e.status = s; e.code = code; if (detail) e.detail = String(detail).slice(0, 80); throw e; };
 const YT_ID = /^[\w-]{11}$/;
 function ytId(s) {
   s = String(s || '').trim().slice(0, 300); let u; try { u = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s); } catch { return null; }
@@ -245,8 +245,11 @@ function ytId(s) {
 }
 function sameSite(req) {
   const o = req.headers.get('origin'); if (!o) return;
-  let ok = false; try { ok = new URL(o).host === new URL(req.url).host; } catch { }
-  if (!ok) failc(403, 'forbidden');
+  const hosts = new Set(); let oh = ''; try { oh = new URL(o).host; } catch { }
+  [req.headers.get('host'), req.headers.get('x-forwarded-host'), req.headers.get('x-nf-site-host')].forEach(h => h && h.split(',').forEach(x => hosts.add(x.trim())));
+  try { hosts.add(new URL(req.url).host); } catch { }
+  ['URL', 'DEPLOY_PRIME_URL', 'DEPLOY_URL'].forEach(k => { try { if (env(k)) hosts.add(new URL(env(k)).host); } catch { } });
+  if (!oh || !hosts.has(oh)) failc(403, 'forbidden', oh);
 }
 async function ytGate(req) {
   sameSite(req);
@@ -261,7 +264,7 @@ async function askClaude(system, content, max) {
       body: JSON.stringify({ model: env('YT_MODEL') || 'claude-haiku-5-5', max_tokens: max, system, messages: [{ role: 'user', content }] }) });
   } catch (e) { failc(e.name === 'AbortError' ? 504 : 502, e.name === 'AbortError' ? 'timeout' : 'upstream'); }
   finally { clearTimeout(tm); }
-  if (!r.ok) { console.error('anthropic status', r.status); failc(502, 'upstream'); }
+  if (!r.ok) { let t = ''; try { t = ((await r.json()).error || {}).type || ''; } catch { } console.error('anthropic status', r.status, t); failc(502, 'upstream', r.status + ' ' + t); }
   const j = await r.json(); return (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
 }
 const LANGN = l => l === 'en' ? 'English' : 'Arabic (العربية)';
@@ -276,8 +279,8 @@ Rules:
 - thumbnail.best_frame: 0-based index of the frame that is clearest, most expressive and visually engaging. text_options: 3-4 very short overlay texts (max 4 words each). reason: one sentence.
 Return ONLY a JSON object: {"title":"","alt_titles":["",""],"description":"","tags":[],"hashtags":[],"thumbnail":{"best_frame":0,"text_options":[],"reason":""}}`;
 function parseJson(t) {
-  const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b < a) failc(502, 'upstream');
-  try { return JSON.parse(t.slice(a, b + 1)); } catch { failc(502, 'upstream'); }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b < a) failc(502, 'upstream', 'bad reply');
+  try { return JSON.parse(t.slice(a, b + 1)); } catch { failc(502, 'upstream', 'bad json'); }
 }
 const strs = (v, n, len) => (Array.isArray(v) ? v : []).map(x => clean(x, len)).filter(Boolean).slice(0, n);
 function normAnalysis(o, nFrames) {
@@ -356,7 +359,7 @@ export default async req => {
     }
     return json({ error: 'غير موجود.' }, 404);
   } catch (e) {
-    if (e.status) return json({ error: e.message, ...(e.code ? { code: e.code } : {}) }, e.status);
+    if (e.status) return json({ error: e.message, ...(e.code ? { code: e.code } : {}), ...(e.detail ? { detail: e.detail } : {}) }, e.status);
     console.error(e);
     return json({ error: 'خطأ غير متوقع في الخادم.' }, 500);
   }

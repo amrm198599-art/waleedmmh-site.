@@ -417,7 +417,7 @@ test('يوتيوبر: تقييم اللقطات يفضّل الواضحة الم
 
 test('يوتيوبر API: التحقق والحدود وتنقية المخرجات وحماية الحقن وجلب الرابط', async () => {
   const d = fs.mkdtempSync(p.join(os.tmpdir(), 'yt-')); fs.mkdirSync(p.join(d, 'repo'));
-  Object.assign(process.env, { LOCAL_DIR: d, SESSION_SECRET: 'x'.repeat(40), YT_DAILY_LIMIT: '3', YT_GLOBAL_DAILY: '50' }); delete process.env.ANTHROPIC_API_KEY; delete process.env.YOUTUBE_API_KEY;
+  Object.assign(process.env, { LOCAL_DIR: d, SESSION_SECRET: 'x'.repeat(40), YT_DAILY_LIMIT: '4', YT_GLOBAL_DAILY: '50' }); delete process.env.ANTHROPIC_API_KEY; delete process.env.YOUTUBE_API_KEY;
   const { default: h } = await import(p.join(R, 'functions/api.mjs'));
   const call = async (u, b, hd = {}) => { const r = await h(new Request('http://x' + u, { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0', ...hd }, body: JSON.stringify(b) })); return { s: r.status, j: await r.json() }; };
   const jpg = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]).toString('base64');
@@ -438,7 +438,11 @@ test('يوتيوبر API: التحقق والحدود وتنقية المخرج�
     const txt = seen.b.messages[0].content.filter(x => x.type === 'text').map(x => x.text).join('\n'); assert.equal(txt.split('</data>').length - 1, 1); assert.equal(seen.b.messages[0].content.filter(x => x.type === 'image').length, 1);
     reply = 'فكرة 1\nفكرة 2'; assert.equal((await call('/api/yt/write', { kind: 'bad', topic: 'x' })).s, 400);
     const w = await call('/api/yt/write', { kind: 'ideas', topic: 'طبخ', lang: 'ar' }); assert.equal(w.s, 200); assert.ok(w.j.text.includes('فكرة 1')); // (3)
-    assert.equal((await call('/api/yt/analyze', { frames: [jpg] })).j.code, 'limit'); // (4) > 3
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: { type: 'authentication_error', message: 'secret-detail' } }), { status: 401 });
+    const up = await call('/api/yt/analyze', { frames: [jpg] }); // (4) خطأ من المزوّد يُظهر الحالة والنوع فقط
+    assert.equal(up.j.code, 'upstream'); assert.ok(up.j.detail.includes('401') && up.j.detail.includes('authentication_error') && !JSON.stringify(up.j).includes('secret-detail'));
+    assert.equal((await call('/api/yt/analyze', { frames: [jpg] })).j.code, 'limit'); // (5) > 4
+    assert.equal((await call('/api/yt/analyze', { frames: [jpg] }, { origin: 'http://x', host: 'x' })).j.code, 'limit'); // نفس النطاق مسموح (يصل للحد لا للرفض)
     // رابط يوتيوب: لا يُجلب إلا من نطاقين ثابتين، والمعرّف يُتحقق منه
     const urls = [];
     globalThis.fetch = async u => { u = String(u); urls.push(u); if (u.includes('oembed')) return new Response(JSON.stringify({ title: 'Vid', author_name: 'Me' }), { status: 200 }); if (u.startsWith('https://i.ytimg.com/vi/dQw4w9WgXcQ/')) return new Response(Buffer.alloc(5000, 1), { status: 200, headers: { 'content-type': 'image/jpeg' } }); return new Response('', { status: 404 }); };

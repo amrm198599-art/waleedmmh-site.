@@ -105,5 +105,7 @@
 "yt_m_link_ok":"Video data fetched. Press “Analyze video”.",
 "yt_m_link_nometa":"Only the title and images were fetched (current description and tags are unavailable), so the analysis relies on the title and frames.",
 "yt_m_file_ok":"File selected:",
-"yt_m_need_topic":"Write the idea first."
+"yt_m_need_topic":"Write the idea first.",
+"yt_m_upstream":"Could not reach the AI service. Check the service key, the credit balance and the model name in Netlify settings.",
+"yt_m_forbidden":"The request was refused because it came from a different domain than the site."
 }

@@ -47,14 +47,17 @@
   const T = k => I[k] || k;
   const st = { file: null, frames: [], sel: 0, meta: null, busy: false, res: null };
   const say = (m, bad) => { const s = $('yt-status'); s.textContent = m || ''; s.className = m ? (bad ? 'warn' : 'note') : ''; };
-  const ERR = { no_key: 'yt_m_no_key', limit: 'yt_m_limit', busy: 'yt_m_busy_srv', timeout: 'yt_m_timeout', bad_url: 'yt_m_bad_url', not_found: 'yt_m_not_found' };
+  const ERR = { upstream: 'yt_m_upstream', forbidden: 'yt_m_forbidden', no_key: 'yt_m_no_key', limit: 'yt_m_limit', busy: 'yt_m_busy_srv', timeout: 'yt_m_timeout', bad_url: 'yt_m_bad_url', not_found: 'yt_m_not_found' };
 
   async function call(path, body) {
     let r, j = null;
-    try { r = await fetch('/api/yt/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); j = await r.json(); } catch (e) { throw new Error('yt_m_err'); }
-    if (!r.ok) throw new Error(ERR[j && j.code] || 'yt_m_err');
+    try { r = await fetch('/api/yt/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { throw fail('yt_m_err', 'network'); }
+    try { j = await r.json(); } catch (e) { throw fail('yt_m_err', 'HTTP ' + r.status); }
+    if (!r.ok) throw fail(ERR[j && j.code] || 'yt_m_err', 'HTTP ' + r.status + (j && j.code ? ' ' + j.code : '') + (j && j.detail ? ' ' + j.detail : ''));
     return j;
   }
+  function fail(key, info) { const e = new Error(key); e.info = info; return e; }
+  const errText = e => (T(e.message) === e.message ? T('yt_m_err') : T(e.message)) + (e.info && !/^yt_m_(limit|busy_srv|no_key|bad_url|not_found|timeout)$/.test(e.message) ? ' [' + e.info + ']' : '');
   function copyText(text, btn) {
     const done = () => { const o = btn.dataset.o || btn.textContent; btn.dataset.o = o; btn.textContent = T('yt_copied'); setTimeout(() => { btn.textContent = o; }, 1600); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => legacy());
@@ -175,7 +178,7 @@
       say(T('yt_m_busy_ai'));
       const r = await call('analyze', { lang: $('yt-lang').value, note: $('yt-note').value, transcript: $('yt-sub').value, meta: st.meta || undefined, frames: st.frames.slice(0, 5).map(f => f.small) });
       showResults(r); say(T('yt_m_done'));
-    } catch (e) { say(T(e.message) === e.message ? T('yt_m_err') : T(e.message), true); }
+    } catch (e) { say(errText(e), true); }
     finally { st.busy = false; $('yt-analyze').disabled = false; }
   }
   async function fetchLink() {
@@ -186,7 +189,7 @@
       $('yt-file-name').textContent = T('yt_file_none'); await framesFromImages(r.images);
       if (!$('yt-note').value.trim() && r.title) $('yt-note').value = r.title;
       say(T(r.hasMeta ? 'yt_m_link_ok' : 'yt_m_link_nometa'));
-    } catch (e) { say(T(e.message) === e.message ? T('yt_m_err') : T(e.message), true); }
+    } catch (e) { say(errText(e), true); }
     finally { $('yt-fetch').disabled = false; }
   }
   function pickFile(f) {
@@ -199,7 +202,7 @@
     const topic = $('yt-topic').value.trim(); if (!topic) return say(T('yt_m_need_topic'), true);
     const btns = [$('yt-ideas'), $('yt-script')]; btns.forEach(b => { b.disabled = true; }); say(T('yt_m_busy_ai'));
     try { const r = await call('write', { kind, topic, lang: $('yt-lang').value, minutes: +$('yt-min').value || 5 }); $('yt-out').value = r.text; $('yt-out-box').hidden = false; say(''); }
-    catch (e) { say(T(e.message) === e.message ? T('yt_m_err') : T(e.message), true); }
+    catch (e) { say(errText(e), true); }
     finally { btns.forEach(b => { b.disabled = false; }); }
   }
 
